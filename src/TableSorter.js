@@ -221,9 +221,13 @@
                 this._setupHeader(header.element, index);
             });
 
-            // Add sortable class to all headers (for CSS convenience)
-            // This can be removed if you prefer users to style via [data-sort-type] instead
-            this.headers.forEach(h => h.element.classList.add('sortable'));
+            // Add .sortable class to headers (for css convenience) UNLESS
+            // 'data-sortable=false' present (data-sortable=false detected in
+            // _locateHeaders(), .isSortable attr added to header objects as a result)
+            // This class addition can be removed if you prefer users to style via [data-sort-type] instead
+            this.headers
+                .filter(h => h.isSortable)
+                .forEach(h => h.element.classList.add('sortable'));
         }
 
         /**
