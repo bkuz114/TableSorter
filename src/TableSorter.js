@@ -3,7 +3,7 @@
  * 
  * Features:
  * - Opt-in via data-sortable attribute on <table>
- * - Column configuration via data-sort-type on <th> (string, string-case-sensitive, number, range-number, custom)
+ * - Column configuration via data-sort-type on <th> (string, string-case-sensitive, number, range-min, range-max, custom)
  * - Extensible comparator registry for custom sort logic
  * - Visual state classes: .sort-asc, .sort-desc (JS adds .sortable to headers for CSS convenience)
  * - Graceful error handling with console warnings
@@ -27,7 +27,7 @@
  *        <tr>
  *          <th data-sort-type="string">Vegetable</th>
  *          <th data-sort-type="number">Price</th>
- *          <th data-sort-type="range-number">Cook Time</th>
+ *          <th data-sort-type="range-min">Cook Time</th>
  *          <th data-sortable="false">Notes</th>
  *        </tr>
  *      </thead>
@@ -103,9 +103,21 @@
          * Non-numeric or empty values are pushed to the bottom (Infinity).
          * Logs a warning for non-empty cells that fail parsing.
          */
-        'range-number': (a, b) => {
+        'range-min': (a, b) => {
             const numA = _parseRangeNumber(a);
             const numB = _parseRangeNumber(b);
+            return (numA - numB);
+        },
+
+
+        /**
+         * Range number comparison. Extracts the second number from strings like "4-5" or "4–5 minutes".
+         * Non-numeric or empty values are pushed to the bottom (Infinity).
+         * Logs a warning for non-empty cells that fail parsing.
+         */
+        'range-max': (a, b) => {
+            const numA = _parseRangeNumber(a, true);
+            const numB = _parseRangeNumber(b, true);
             return (numA - numB);
         }
     };
@@ -130,22 +142,31 @@
     }
 
     /**
-     * Helper: Parse the first number from a range string.
+     * Helper: Parse either first or second number from a range string.
      * Returns Infinity for unparseable values (except empty cells, which return Infinity silently).
      * @param {string} val - The cell text content
+     * @param {boolean} getMax - true if want second number, false if want first
      * @returns {number} First number found or Infinity
      * @private
      */
-    function _parseRangeNumber(val) {
+    function _parseRangeNumber(val, getMax = false) {
         const str = String(val).trim();
         if (str === '') return Infinity; // Empty cells: bottom, no warning
 
-        const match = str.match(/-?\d+/);
-        if (!match) {
+        const matches = str.match(/\d+/g);
+        if (!matches) {
             console.warn(`TableSorter: Could not parse range number from: "${str}"`);
             return Infinity;
         }
-        return parseInt(match[0], 10);
+
+        const min = parseInt(matches[0], 10);
+        // If only one number, min and max are the same
+        const max = matches.length > 1 ? parseInt(matches[1], 10) : min;
+
+        if (getMax) {
+            return max;
+        }
+        return min;
     }
 
     /**

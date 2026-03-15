@@ -32,7 +32,7 @@ TableSorter takes a different approach:
        <tr>
          <th data-sort-type="string">Vegetable</th>
          <th data-sort-type="number">Price</th>
-         <th data-sort-type="range-number">Cook Time</th>
+         <th data-sort-type="range-min">Cook Time</th>
          <th data-sortable="false">Notes</th>
        </tr>
      </thead>
@@ -67,7 +67,8 @@ See [`demo.html`](demo.html) for working examples, including:
 - `string` - Case-insensitive alphabetical
 - `string-case-sensitive` - Case-sensitive alphabetical
 - `number` - Numeric (extracts first number, invalid values go to bottom)
-- `range-number` - For ranges like "4-5" (sorts by first number)
+- `range-min` - For ranges like "4-5" (sorts by first number)
+- `range-max` - For ranges like "4-5" (sorts by second number)
 - `custom` - Use with registered comparator (see below)
 
 ### Custom Comparators
