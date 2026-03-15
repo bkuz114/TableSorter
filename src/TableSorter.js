@@ -273,18 +273,22 @@
                 // Check if column is explicitly non-sortable
                 const isSortable = cell.getAttribute('data-sortable') !== 'false';
                 let sortType = cell.getAttribute('data-sort-type');
+                let customComparator = cell.getAttribute('data-sort-custom');
 
                 if (!isSortable) {
                     sortType = null; // Mark as non-sortable
+                    customComparator = null; // Clear custom comparator for non-sortable
                 } else if (!sortType) {
                     // Default to string with warning
                     console.warn(`TableSorter: No data-sort-type on header "${cell.textContent.trim()}", defaulting to "string"`);
                     sortType = 'string';
+                    customComparator = null; // Not needed for built-in types
                 }
 
                 return {
                     element: cell,
                     sortType: sortType,
+                    customComparator: customComparator,
                     isSortable: isSortable
                 };
             });
@@ -357,7 +361,7 @@
             }
 
             // Get comparator for this column
-            const comparator = this._getComparator(header.sortType);
+            const comparator = this._getComparator(header);
 
             // Sort data rows
             this.dataRows.sort((rowA, rowB) => {
@@ -417,28 +421,28 @@
 
         /**
          * Get the appropriate comparator function for a sort type.
-         * @param {string} sortType - The sort type from data-sort-type
+         * @param {Object} header - The header object
+         *  (see _locateHeaders for source of truth on headers)
          * @returns {Function} Comparator function
          * @private
          */
-        _getComparator(sortType) {
+        _getComparator(header) {
+            const sortType = header.sortType;
+            const customName = header.customComparator;
+
             // Handle custom comparators
-            if (sortType === 'custom') {
-                // Custom type requires a registered comparator name via data-sort-custom
-                // For simplicity, we'll use the header's data-sort-custom attribute
-                // This could be enhanced, but for now we'll just return a default
-                console.warn('TableSorter: Custom sort type not fully implemented, defaulting to string');
-                return BUILT_IN_COMPARATORS.string;
+            if (sortType === 'custom' && customName) {
+                if (TableSorter.customComparators[customName]) {
+                    return TableSorter.customComparators[customName];
+                } else {
+                    console.warn(`TableSorter: Custom comparator "${customName}" not found, defaulting to string`);
+                    return BUILT_IN_COMPARATORS.string;
+                }
             }
 
             // Built-in comparators
             if (BUILT_IN_COMPARATORS[sortType]) {
                 return BUILT_IN_COMPARATORS[sortType];
-            }
-
-            // Try custom registry
-            if (TableSorter.customComparators[sortType]) {
-                return TableSorter.customComparators[sortType];
             }
 
             // Fallback
