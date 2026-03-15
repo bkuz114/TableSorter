@@ -82,21 +82,34 @@
         /**
          * Case-insensitive string comparison.
          */
-        string: (a, b) => String(a).toLowerCase().localeCompare(String(b).toLowerCase()),
+        string: {
+            compare: (a, b) => String(a).toLowerCase().localeCompare(String(b).toLowerCase()),
+            isValid: () => true // All strings are valid
+        },
 
         /**
          * Case-sensitive string comparison.
          */
-        'string-case-sensitive': (a, b) => String(a).localeCompare(String(b)),
+        'string-case-sensitive': {
+            compare: (a, b) => String(a).localeCompare(String(b)),
+            isValid: () => true
+        },
 
         /**
          * Numeric comparison. Non-numeric or empty values are pushed to the bottom (Infinity).
          * Logs a warning for non-empty cells that fail parsing.
          */
-        number: (a, b) => {
-            const numA = _parseNumber(a);
-            const numB = _parseNumber(b);
-            return (numA - numB);
+        number: {
+            compare: (a, b) => {
+                const numA = _parseNumber(a);
+                const numB = _parseNumber(b);
+                return (numA - numB);
+            },
+            isValid: (val) => {
+                const str = String(val).trim();
+                if (str === '') return false;
+                return !isNaN(parseFloat(str));
+            }
         },
 
         /**
@@ -104,10 +117,13 @@
          * Non-numeric or empty values are pushed to the bottom (Infinity).
          * Logs a warning for non-empty cells that fail parsing.
          */
-        'range-min': (a, b) => {
-            const numA = _parseRangeNumber(a);
-            const numB = _parseRangeNumber(b);
-            return (numA - numB);
+        'range-min': {
+            compare: (a, b) => {
+                const numA = _parseRangeNumber(a);
+                const numB = _parseRangeNumber(b);
+                return (numA - numB);
+            },
+            isValid: (val) => _validRange(val)
         },
 
 
@@ -116,10 +132,13 @@
          * Non-numeric or empty values are pushed to the bottom (Infinity).
          * Logs a warning for non-empty cells that fail parsing.
          */
-        'range-max': (a, b) => {
-            const numA = _parseRangeNumber(a, true);
-            const numB = _parseRangeNumber(b, true);
-            return (numA - numB);
+        'range-max': {
+            compare: (a, b) => {
+                const numA = _parseRangeNumber(a, true);
+                const numB = _parseRangeNumber(b, true);
+                return (numA - numB);
+            },
+            isValid: (val) => _validRange(val)
         }
     };
 
@@ -171,6 +190,15 @@
     }
 
     /**
+     * Helper: Return true/false if a range is valid.
+     */
+    function _validRange(val) {
+        const str = String(val).trim();
+        if (str === '') return false;
+        return /\d+/.test(str);
+    }
+
+    /**
      * TableSorter class.
      * @param {HTMLTableElement} tableElement - The table to make sortable
      */
@@ -186,12 +214,26 @@
          * @param {string} name - Unique identifier for the comparator
          * @param {Function} fn - Comparator function (a, b) => number
          */
-        static registerComparator(name, fn) {
-            if (typeof fn !== 'function') {
-                console.error(`TableSorter: Comparator "${name}" must be a function`);
+        static registerComparator(name, definition) {
+            // Allow simple function for backward compatibility
+            if (typeof definition === 'function') {
+                definition = {
+                    compare: definition,
+                    isValid: () => true // Default: all values valid
+                };
+            }
+
+            if (typeof definition.compare !== 'function') {
+                console.error(`TableSorter: Comparator "${name}" must have a compare function`);
                 return;
             }
-            TableSorter.customComparators[name] = fn;
+
+            if (typeof definition.isValid !== 'function') {
+                console.warn(`TableSorter: Comparator "${name}" missing isValid, defaulting to all valid`);
+                definition.isValid = () => true;
+            }
+
+            TableSorter.customComparators[name] = definition;
         }
 
         /**
@@ -385,7 +427,9 @@
             }
 
             // Get comparator for this column
-            const comparator = this._getComparator(header, ascending);
+            const comparatorDef = this._getComparator(header, ascending);
+            const comparator = comparatorDef.compare;
+            const isValidCell = comparatorDef.isValid;
 
             // Sort data rows
             this.dataRows.sort((rowA, rowB) => {
@@ -395,6 +439,22 @@
                 const result = comparator(cellA, cellB);
                 return ascending ? result : -result;
             });
+
+            // After sorting, ensure invalid rows are at the bottom
+            // This is especially important for descending sort
+            const invalidRows = [];
+            const validRows = [];
+
+            this.dataRows.forEach(row => {
+                const cellValue = row.cells[columnIndex]?.textContent || '';
+                if (isValidCell(cellValue)) {
+                    validRows.push(row);
+                } else {
+                    invalidRows.push(row);
+                }
+            });
+
+            this.dataRows = [...validRows, ...invalidRows];
 
             // Reattach rows to tbody (or directly to table if no tbody)
             this._renderRows();

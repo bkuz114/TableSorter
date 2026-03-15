@@ -76,12 +76,25 @@ See [`demo.html`](demo.html) for working examples, including:
 Register your own sorting logic:
 
 ```javascript
-TableSorter.registerComparator('emoji-time', (a, b) => {
-  const extractMinutes = (str) => {
-    const match = str.match(/\d+/);
-    return match ? parseInt(match[0], 10) : Infinity;
-  };
-  return extractMinutes(a) - extractMinutes(b);
+
+// Example: Sorting cook times that include emoji indicators
+TableSorter.registerComparator('emoji-time', {
+
+  // Extract the first number found for comparison
+  compare: (a, b) => {
+    const extractMinutes = (str) => {
+      const match = str.match(/\d+/);
+      return match ? parseInt(match[0], 10) : Infinity;
+    };
+    return extractMinutes(a) - extractMinutes(b);
+  },
+
+  // Valid cells must contain at least one number
+  isValid: (cellValue) => {
+    const str = String(cellValue).trim();
+    if (str === '') return false;  // Empty cells are invalid
+    return /\d+/.test(str);        // Has at least one digit
+  }
 });
 ```
 
