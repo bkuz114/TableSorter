@@ -60,6 +60,7 @@ See [`demo.html`](demo.html) for working examples, including:
 |-----------|-------------|---------|
 | `data-sortable` | (On `<table>`) Enables sorting | `<table data-sortable>` |
 | `data-sort-type` | (On `<th>`) Sets column sort behavior | `data-sort-type="number"` |
+| `data-sort-type-desc` | (On `<th>`) Optional. Sets col sort on descending | `data-sort-type-desc`="range-max" |
 | `data-sortable="false"` | (On `<th>`) Explicitly disable sorting | `<th data-sortable="false">` |
 
 ### Built-in Sort Types

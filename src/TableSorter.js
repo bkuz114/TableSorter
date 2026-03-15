@@ -4,6 +4,7 @@
  * Features:
  * - Opt-in via data-sortable attribute on <table>
  * - Column configuration via data-sort-type on <th> (string, string-case-sensitive, number, range-min, range-max, custom)
+ * - Optional data-sort-type-desc on <th> allows for different comparator on descending vs ascending sort
  * - Extensible comparator registry for custom sort logic
  * - Visual state classes: .sort-asc, .sort-desc (JS adds .sortable to headers for CSS convenience)
  * - Graceful error handling with console warnings
@@ -298,6 +299,7 @@
                 // Check if column is explicitly non-sortable
                 const isSortable = cell.getAttribute('data-sortable') !== 'false';
                 let sortType = cell.getAttribute('data-sort-type');
+                let sortTypeDesc = cell.getAttribute('data-sort-type-desc') || sortType; // Fall back to same if not specified
                 let customComparator = cell.getAttribute('data-sort-custom');
 
                 if (!isSortable) {
@@ -313,6 +315,7 @@
                 return {
                     element: cell,
                     sortType: sortType,
+                    sortTypeDesc: sortTypeDesc,
                     customComparator: customComparator,
                     isSortable: isSortable
                 };
@@ -386,7 +389,7 @@
             }
 
             // Get comparator for this column
-            const comparator = this._getComparator(header);
+            const comparator = this._getComparator(header, ascending);
 
             // Sort data rows
             this.dataRows.sort((rowA, rowB) => {
@@ -448,11 +451,13 @@
          * Get the appropriate comparator function for a sort type.
          * @param {Object} header - The header object
          *  (see _locateHeaders for source of truth on headers)
+         * @param {boolean} ascending - true if ascending sort, false if descending
+         *  (user can define different comparators for each direction)
          * @returns {Function} Comparator function
          * @private
          */
-        _getComparator(header) {
-            const sortType = header.sortType;
+        _getComparator(header, ascending) {
+            const sortType = ascending ? header.sortType : header.sortTypeDesc;
             const customName = header.customComparator;
 
             // Handle custom comparators
