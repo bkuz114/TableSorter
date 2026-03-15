@@ -5,6 +5,10 @@
  * - Opt-in via data-sortable attribute on <table>
  * - Column configuration via data-sort-type on <th> (string, string-case-sensitive, number, range-min, range-max)
  * - Optional data-sort-type-desc on <th> allows for different comparator on descending vs ascending sort
+ * - Optional data-default-sort-direction on <th>: Specifies the sort
+ *   direction when this column is clicked fresh (not toggling). Valid values:
+ *   "ascending" (default) or "descending". Example:
+ *   <th data-sort-type="number" data-default-sort-direction="descending">Price</th>
  * - Extensible comparator registry for custom sort logic
  * - Visual state classes: .sort-asc, .sort-desc (JS adds .sortable to headers for CSS convenience)
  * - Graceful error handling with console warnings
@@ -27,7 +31,7 @@
  *      <thead>
  *        <tr>
  *          <th data-sort-type="string">Vegetable</th>
- *          <th data-sort-type="number">Price</th>
+ *          <th data-sort-type="number" default-sort-direction="descending">Price</th>
  *          <th data-sort-type="range-min">Cook Time</th>
  *          <th data-sortable="false">Notes</th>
  *        </tr>
@@ -392,7 +396,9 @@
          * The handler determines sort direction as follows:
          * - If this column is already the current sort column → toggle direction
          *   (ascending → descending or descending → ascending)
-         * - If a different column was sorted previously → start fresh with ascending
+         * - If a different column was sorted previously → start fresh with
+         *   col's default sort direction (ascending, unless specified otherwise
+         *   by 'data-default-sort-direction=descending' in <th>)
          *
          * Why start fresh with ascending for new columns?
          * Once another column is sorted, the previous column's rows are
@@ -412,12 +418,39 @@
                 if (this.currentSort.column === columnIndex) {
                     // Same column clicked consecutively: toggle direction
                     ascending = !this.currentSort.ascending;
+                } else {
+                    // Different column clicked before this one:
+                    // use column's default sort direction --
+                    // ascending unless otherwise specified by data-sort-direction
+                    ascending = this._getDefaultSortDir(columnIndex);
                 }
-                // Different column clicked before this one:
-                // default to ascending (already true)
 
                 this.sort(columnIndex, ascending);
             };
+        }
+
+        /**
+         * Gets the default sort direction for a column from its data attribute.
+         * @param {number} columnIndex - The column index
+         * @returns {boolean} True for ascending, false for descending
+         * @private
+         */
+        _getDefaultSortDir(columnIndex) {
+            const header = this.headers[columnIndex];
+            const defaultDir = header.element.getAttribute('data-default-sort-direction');
+
+            if (!defaultDir) return true; // No attribute = ascending
+
+            const normalized = defaultDir.toLowerCase().trim();
+            if (normalized === 'descending') return false;
+            if (normalized === 'ascending') return true;
+
+            // Invalid value
+            console.warn(
+                `TableSorter: Invalid data-default-sort-direction "${defaultDir}" on column "${header.element.textContent.trim()}". ` +
+                `Expected "ascending" or "descending". Defaulting to ascending.`
+            );
+            return true;
         }
 
         /**

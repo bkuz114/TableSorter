@@ -31,7 +31,7 @@ TableSorter takes a different approach:
      <thead>
        <tr>
          <th data-sort-type="string">Vegetable</th>
-         <th data-sort-type="number">Price</th>
+         <th data-sort-type="number" data-default-sort-direction="descending">Price</th>
          <th data-sort-type="range-min">Cook Time</th>
          <th data-sortable="false">Notes</th>
        </tr>
@@ -61,6 +61,7 @@ See [`demo.html`](demo.html) for working examples, including:
 | `data-sortable` | (On `<table>`) Enables sorting | `<table data-sortable>` |
 | `data-sort-type` | (On `<th>`) Sets column sort behavior | `data-sort-type="number"` |
 | `data-sort-type-desc` | (On `<th>`) Optional. Sets col sort on descending | `data-sort-type-desc`="range-max" |
+| `data-sort-type-desc` | (On `<th>`) Optional. Default sort direction. "ascending" or "descending"  | `data-default-sort-direction`="descending" |
 | `data-sortable="false"` | (On `<th>`) Explicitly disable sorting | `<th data-sortable="false">` |
 
 ### Built-in Sort Types
