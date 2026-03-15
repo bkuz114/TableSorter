@@ -70,7 +70,6 @@ See [`demo.html`](demo.html) for working examples, including:
 - `number` - Numeric (extracts first number, invalid values go to bottom)
 - `range-min` - For ranges like "4-5" (sorts by first number)
 - `range-max` - For ranges like "4-5" (sorts by second number)
-- `custom` - Use with registered comparator (see below)
 
 ### Custom Comparators
 
@@ -88,7 +87,7 @@ TableSorter.registerComparator('emoji-time', (a, b) => {
 
 Then use it in your HTML:
 ```html
-<th data-sort-type="custom" data-sort-custom="emoji-time">Cook Time</th>
+<th data-sort-type="emoji-time">Cook Time</th>
 ```
 
 ### Manual Initialization

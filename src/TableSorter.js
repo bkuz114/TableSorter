@@ -3,7 +3,7 @@
  * 
  * Features:
  * - Opt-in via data-sortable attribute on <table>
- * - Column configuration via data-sort-type on <th> (string, string-case-sensitive, number, range-min, range-max, custom)
+ * - Column configuration via data-sort-type on <th> (string, string-case-sensitive, number, range-min, range-max)
  * - Optional data-sort-type-desc on <th> allows for different comparator on descending vs ascending sort
  * - Extensible comparator registry for custom sort logic
  * - Visual state classes: .sort-asc, .sort-desc (JS adds .sortable to headers for CSS convenience)
@@ -50,7 +50,7 @@
  *    });
  * 
  *    // Use it in HTML
- *    <th data-sort-type="custom" data-sort-custom="emoji-time">Cook Time</th>
+ *    <th data-sort-type="emoji-time">Cook Time</th>
  * 
  * 4. Programmatic control:
  *    const sorter = new TableSorter(table);
@@ -300,23 +300,19 @@
                 const isSortable = cell.getAttribute('data-sortable') !== 'false';
                 let sortType = cell.getAttribute('data-sort-type');
                 let sortTypeDesc = cell.getAttribute('data-sort-type-desc') || sortType; // Fall back to same if not specified
-                let customComparator = cell.getAttribute('data-sort-custom');
 
                 if (!isSortable) {
                     sortType = null; // Mark as non-sortable
-                    customComparator = null; // Clear custom comparator for non-sortable
                 } else if (!sortType) {
                     // Default to string with warning
                     console.warn(`TableSorter: No data-sort-type on header "${cell.textContent.trim()}", defaulting to "string"`);
                     sortType = 'string';
-                    customComparator = null; // Not needed for built-in types
                 }
 
                 return {
                     element: cell,
                     sortType: sortType,
                     sortTypeDesc: sortTypeDesc,
-                    customComparator: customComparator,
                     isSortable: isSortable
                 };
             });
@@ -458,16 +454,10 @@
          */
         _getComparator(header, ascending) {
             const sortType = ascending ? header.sortType : header.sortTypeDesc;
-            const customName = header.customComparator;
 
             // Handle custom comparators
-            if (sortType === 'custom' && customName) {
-                if (TableSorter.customComparators[customName]) {
-                    return TableSorter.customComparators[customName];
-                } else {
-                    console.warn(`TableSorter: Custom comparator "${customName}" not found, defaulting to string`);
-                    return BUILT_IN_COMPARATORS.string;
-                }
+            if (TableSorter.customComparators[sortType]) {
+                return TableSorter.customComparators[sortType];
             }
 
             // Built-in comparators
