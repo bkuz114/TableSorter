@@ -387,22 +387,34 @@
         }
 
         /**
-         * Create a click handler for a specific column.
-         * @param {number} columnIndex 
-         * @returns {Function} Click handler
+         * Creates a click handler for a specific column.
+         *
+         * The handler determines sort direction as follows:
+         * - If this column is already the current sort column → toggle direction
+         *   (ascending → descending or descending → ascending)
+         * - If a different column was sorted previously → start fresh with ascending
+         *
+         * Why start fresh with ascending for new columns?
+         * Once another column is sorted, the previous column's rows are
+         * no longer in any meaningful order. "Remembering" the last direction
+         * would be misleading. Starting with ascending provides a consistent baseline.
+         *
+         * @param {number} columnIndex - The column this handler is for
+         * @returns {Function} Click event handler
          * @private
          */
         _createHeaderClickHandler(columnIndex) {
             return (event) => {
                 event.preventDefault();
 
-                // Determine sort direction
+                // determine sort order
                 let ascending = true;
                 if (this.currentSort.column === columnIndex) {
-                    // Toggle direction if same column
+                    // Same column clicked consecutively: toggle direction
                     ascending = !this.currentSort.ascending;
                 }
-                // New column starts ascending (already true)
+                // Different column clicked before this one:
+                // default to ascending (already true)
 
                 this.sort(columnIndex, ascending);
             };
