@@ -59,9 +59,9 @@ See [`demo.html`](demo.html) for working examples, including:
 | Attribute | Description | Example |
 |-----------|-------------|---------|
 | `data-sortable` | (On `<table>`) Enables sorting | `<table data-sortable>` |
-| `data-sort-type` | (On `<th>`) Sets column sort behavior | `data-sort-type="number"` |
-| `data-sort-type-desc` | (On `<th>`) Optional. Sets col sort on descending | `data-sort-type-desc`="range-max" |
-| `data-sort-type-desc` | (On `<th>`) Optional. Default sort direction. "ascending" or "descending"  | `data-default-sort-direction`="descending" |
+| `data-sort-type` | (On `<th>`) Sets column sort behavior | `<th data-sort-type="number">` |
+| `data-sort-type-desc` | (On `<th>`) Optional. Sets col sort on descending | `<th data-sort-type-desc="range-max">` |
+| `data-sort-type-desc` | (On `<th>`) Optional. Default sort direction. "ascending" or "descending"  | `<th data-default-sort-direction="descending">` |
 | `data-sortable="false"` | (On `<th>`) Explicitly disable sorting | `<th data-sortable="false">` |
 
 ### Built-in Sort Types
