@@ -74,35 +74,48 @@ See [`demo.html`](demo.html) for working examples, including:
 
 ### Custom Comparators
 
-Register your own sorting logic:
+Extend TableSorter with your own sorting logic using `registerComparator(name, definition)`.
+
+The `definition` can be:
+- **A function** `(a, b) => number` – Simple comparator. Assumes all cell values are valid.
+- **An object** with:
+  - `compare: (a, b) => number` – Required. Standard comparator function.
+  - `isValid: (cellValue) => boolean` – Optional (defaults to true). Validates cell values;
+    invalid values always sort to bottom, regardless of direction.
+
+**Examples:**
 
 ```javascript
 
-// Example: Sorting cook times that include emoji indicators
-TableSorter.registerComparator('emoji-time', {
-
-  // Extract the first number found for comparison
-  compare: (a, b) => {
-    const extractMinutes = (str) => {
-      const match = str.match(/\d+/);
-      return match ? parseInt(match[0], 10) : Infinity;
+// Simple comparator: sort file sizes (e.g., "10 KB", "2 MB")
+TableSorter.registerComparator('file-size', (a, b) => {
+    const toBytes = (str) => {
+        const [_, num, unit] = str.match(/(\d+)\s*(KB|MB|GB)/i) || [];
+        if (!num) return 0;
+        const multiplier = { KB: 1024, MB: 1048576, GB: 1073741824 }[unit.toUpperCase()];
+        return parseInt(num, 10) * multiplier;
     };
-    return extractMinutes(a) - extractMinutes(b);
-  },
+    return toBytes(a) - toBytes(b);
+});
 
-  // Valid cells must contain at least one number
-  isValid: (cellValue) => {
-    const str = String(cellValue).trim();
-    if (str === '') return false;  // Empty cells are invalid
-    return /\d+/.test(str);        // Has at least one digit
-  }
+// Comparator with validation: sort by priority (high > medium > low)
+TableSorter.registerComparator('priority', {
+    compare: (a, b) => {
+        const order = { high: 3, medium: 2, low: 1 };
+        return (order[a.toLowerCase()] || 0) - (order[b.toLowerCase()] || 0);
+    },
+    isValid: (val) => ['high', 'medium', 'low'].includes(val.toLowerCase())
 });
 ```
 
-Then use it in your HTML:
+**Usage in HTML:**
+
 ```html
-<th data-sort-type="emoji-time">Cook Time</th>
+<th data-sort-type="file-size">File Size</th>
+<th data-sort-type="priority">Priority</th>
 ```
+
+*The comparator name in data-sort-type must match the name used in registerComparator().*
 
 ### Manual Initialization
 
