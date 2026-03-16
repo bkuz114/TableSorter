@@ -1,75 +1,122 @@
 /**
- * TableSorter - A vanilla JavaScript class for adding sortable functionality to HTML tables.
+ * TableSorter - A vanilla JavaScript class for sorting HTML tables
+ *
+ * @version 2.0.0
+ * @license GNU
+ *
+ *
+ * QUICK START
+ * -----------
+ * 1. Include the CSS and JS:
+ *    <link rel="stylesheet" href="path/to/tableSorter.css">
+ *    <script src="path/to/TableSorter.js"></script>
+ *
+ * 2. Add data-sortable to your table
+ * 3. Add data-sort-type to each <th> (string, number, range-min, etc.)
+ *
+ * Example:
+ *   <table data-sortable>
+ *     <th data-sort-type="string">Name</th>
+ *     <th data-sort-type="number">Price</th>
+ *   </table>
+ *
+ *
+ * CSS
+ * ---
+ * Include tableSorter.css for essential styling:
+ * - Sort indicators (▲/▼/⇅) via pseudo-elements
+ * - Cursor: pointer on sortable headers
+ * - Hover effects for better UX
+ *
+ * <link rel="stylesheet" href="path/to/tableSorter.css">
+ *
+ * The JS injects these classes you can use for custom styling:
+ * .sortable - Added to all sortable headers (use for cursor, hover effects)
+ * .sort-asc - Added to currently sorted column (ascending)
+ * .sort-desc - Added to currently sorted column (descending)
+ *
+ * The included CSS is minimal and designed to be overridden.
+ * Use these classes as hooks for your own styles.
+ *
+ *
+ * ATTRIBUTES
+ * ----------
+ * data-sortable
+ *   (On <table>) Enables sorting. Tables without this are ignored.
+ *
+ * data-sort-type (required on sortable columns)
+ *   Specifies how to sort this column. Can be any registered comparator name.
+ *   Built-in: "string", "string-case-sensitive", "number", "range-min", "range-max"
+ *   Custom: Any name registered via TableSorter.registerComparator()
+ *
+ * data-sort-type-desc (optional)
+ *   Specifies a different comparator for descending sorts. If not provided,
+ *   descending simply reverses the ascending comparator.
+ *   Example: <th data-sort-type="range-min" data-sort-type-desc="range-max">
+ *
+ * data-default-sort-direction (optional)
+ *   Sets the direction when this column is first clicked (not toggling).
+ *   Values: "ascending" (default) or "descending"
+ *   Example: <th data-sort-type="number" data-default-sort-direction="descending">
+ *
+ * data-sortable="false" (optional on <th>)
+ *   Explicitly marks a column as non-sortable. No click handler, no sort indicator.
+ *
+ *
+ * CUSTOM COMPARATORS
+ * ------------------
+ * TableSorter.registerComparator(name, definition)
  * 
- * Features:
- * - Opt-in via data-sortable attribute on <table>
- * - Column configuration via data-sort-type on <th> (string, string-case-sensitive, number, range-min, range-max)
- * - Optional data-sort-type-desc on <th> allows for different comparator on descending vs ascending sort
- * - Optional data-default-sort-direction on <th>: Specifies the sort
- *   direction when this column is clicked fresh (not toggling). Valid values:
- *   "ascending" (default) or "descending". Example:
- *   <th data-sort-type="number" data-default-sort-direction="descending">Price</th>
- * - Extensible comparator registry for custom sort logic
- * - Visual state classes: .sort-asc, .sort-desc (JS adds .sortable to headers for CSS convenience)
- * - Graceful error handling with console warnings
- * - Auto-initializes on DOMContentLoaded, but can also be instantiated manually
- * 
- * CSS Contract:
- * - .sortable { cursor: pointer; } (add your own styling)
- * - .sort-asc::after, .sort-desc::after for sort indicators
- * - Styling for sortable but inactive headers is optional (e.g., .sortable:not(.sort-asc):not(.sort-desc)::after)
- * 
- * @author Your Name
- * @version 1.0.0
- */
-
-/**
- * USAGE EXAMPLES:
- * 
- * 1. Basic setup (auto-initialization):
- *    <table data-sortable>
- *      <thead>
- *        <tr>
- *          <th data-sort-type="string">Vegetable</th>
- *          <th data-sort-type="number" default-sort-direction="descending">Price</th>
- *          <th data-sort-type="range-min">Cook Time</th>
- *          <th data-sortable="false">Notes</th>
- *        </tr>
- *      </thead>
- *      <tbody>...</tbody>
- *    </table>
- * 
- * 2. Manual initialization:
- *    const table = document.getElementById('my-table');
- *    const sorter = new TableSorter(table);
- * 
- * 3. Custom comparator:
- *    // Register a custom comparator
- *    TableSorter.registerComparator('emoji-time', (a, b) => {
- *      const extractMinutes = (str) => {
- *        const match = str.match(/\d+/);
- *        return match ? parseInt(match[0], 10) : Infinity;
- *      };
- *      return extractMinutes(a) - extractMinutes(b);
- *    });
- * 
- *    // Use it in HTML
- *    <th data-sort-type="emoji-time">Cook Time</th>
- * 
- * 4. Programmatic control:
- *    const sorter = new TableSorter(table);
- *    sorter.sort(0, true);  // Sort column 0 ascending
- *    sorter.sort(2, false); // Sort column 2 descending
- *    sorter.reset();        // Restore original order
- * 
- * 5. CSS styling (add to your stylesheet):
- *    th.sortable { cursor: pointer; }
- *    th.sort-asc::after { content: " ▲"; }
- *    th.sort-desc::after { content: " ▼"; }
- *    th.sortable:not(.sort-asc):not(.sort-desc)::after {
- *      content: " ⇅";
- *      opacity: 0.5;
- *    }
+ * Definition can be:
+ * - A function (a, b) => number  (simple comparator, assumes all values valid)
+ * - An object with:
+ *   - compare: (a, b) => number  (required)
+ *   - isValid: (cellValue) => boolean  (optional, defaults to true)
+ *
+ * Examples:
+ *
+ * // Simple custom comparator (assumes all values valid)
+ * TableSorter.registerComparator('file-size', (a, b) => {
+ *     // Convert "10 KB", "2 MB" etc. to bytes for comparison
+ *     const toBytes = (str) => {
+ *         const [_, num, unit] = str.match(/(\d+)\s*(KB|MB|GB)/i) || [];
+ *         if (!num) return 0;
+ *         const multiplier = { KB: 1024, MB: 1048576, GB: 1073741824 }[unit.toUpperCase()];
+ *         return parseInt(num, 10) * multiplier;
+ *     };
+ *     return toBytes(a) - toBytes(b);
+ * });
+ *
+ * // Custom comparator with validation
+ * TableSorter.registerComparator('priority', {
+ *     compare: (a, b) => {
+ *         const order = { high: 3, medium: 2, low: 1 };
+ *         return (order[a.toLowerCase()] || 0) - (order[b.toLowerCase()] || 0);
+ *     },
+ *     isValid: (val) => ['high', 'medium', 'low'].includes(val.toLowerCase())
+ * });
+ *
+ *
+ * MANUAL INITIALIZATION
+ * ---------------------
+ * const sorter = new TableSorter(tableElement);
+ * sorter.sort(columnIndex, ascending);
+ * sorter.reset();
+ *
+ *
+ * AUTO-INITIALIZATION
+ * -------------------
+ * Runs automatically on DOMContentLoaded for all tables with data-sortable.
+ * To prevent auto-init on a specific table, remove the attribute and initialize manually.
+ *
+ *
+ * BEHAVIOR NOTES
+ * --------------
+ * - Single column sorting only (no multi-column)
+ * - Click same column toggles asc/desc
+ * - Click different column starts fresh (respects data-default-sort-direction)
+ * - Invalid cells (failing isValid) always sort to bottom, regardless of direction
+ * - Console warnings for missing attributes, invalid values, or parsing issues
  */
 
 (function(global) {
